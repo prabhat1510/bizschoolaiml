@@ -4,13 +4,20 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 #Paths to training and validation directories
-#URL -- https://www.kaggle.com/datasets/chrisfilo/fruit-recognition/data
-#or URL-- https://data.mendeley.com/datasets/b6fftwbr2v/1
-train_dir = "path_to_training_data"
-val_dir = "path_to_validation_data"
+#D:\\dataset\\training\\apple
+#D:\\dataset\\training\\banana
+#D:\\dataset\\training\\orange
+#D:\\dataset\\val\\apple
+#D:\\dataset\\val\\banana
+#D:\\dataset\\val\\orange
+train_dir = "D:\\dataset\\training"
+val_dir = "D:\\dataset\\val"
 
 #Image preprocessing
-train_datagen = ImageDataGenerator(rescale=1./255)
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    validation_split=0.2
+)
 val_datagen = ImageDataGenerator(rescale=1./255)
 
 train_generator = train_datagen.flow_from_directory(
@@ -26,7 +33,6 @@ val_generator = val_datagen.flow_from_directory(
     batch_size=32,
     class_mode='categorical'
 )
-
 #Model building
 model = Sequential([
     Conv2D(32, (3, 3), activation='relu', input_shape=(100, 100, 3)),
@@ -42,16 +48,19 @@ model = Sequential([
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 #Train the model
-model.fit(train_generator, validation_data=val_generator, epochs=10)
-
-#Save the model
-#model.save("fruit_classifier_model.h5")
-# Evaluate the model
-test_loss, test_accuracy = model.evaluate(val_generator)
-print(f"Validation accuracy: {test_accuracy:.4f}")
-# Make predictions
-sample_image = val_generator[0][0][0]  # Get a sample image from the validation set
-sample_image = sample_image.reshape((1, 100, 100, 3))  # Reshape for prediction
-predictions = model.predict(sample_image)
-predicted_class = predictions.argmax(axis=-1)
-print(f'Predicted class index: {predicted_class[0]}')
+if train_generator.samples > 0 and val_generator.samples > 0:
+    model.fit(train_generator, validation_data=val_generator, epochs=10)
+    
+    # Evaluate the model
+    test_loss, test_accuracy = model.evaluate(val_generator)
+    print(f"Validation accuracy: {test_accuracy:.4f}")
+    
+    # Make predictions
+    val_generator.reset()
+    sample_batch = next(val_generator)
+    sample_image = sample_batch[0][0:1]  # Get first image from batch
+    predictions = model.predict(sample_image)
+    predicted_class = predictions.argmax(axis=-1)
+    print(f'Predicted class index: {predicted_class[0]}')
+else:
+    print("Error: No images found in the specified directories. Please check your dataset structure.")
